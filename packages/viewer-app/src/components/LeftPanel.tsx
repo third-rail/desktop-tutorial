@@ -67,9 +67,11 @@ function SeriesThumbnail({ series, onSelect }: { series: DicomSeries; onSelect: 
     let cancelled = false;
     const firstInstance = series.instances[0];
     if (firstInstance) {
-      getThumbnailDataUrl(firstInstance.imageId).then((url) => {
-        if (!cancelled) setThumb(url);
-      });
+      getThumbnailDataUrl(firstInstance.imageId)
+        .then((url) => {
+          if (!cancelled) setThumb(url);
+        })
+        .catch((err) => console.error('Failed to generate thumbnail', err));
     }
     return () => {
       cancelled = true;

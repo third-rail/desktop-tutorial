@@ -6,6 +6,17 @@ import type { Measurement } from '../types/dicom';
 
 let listening = false;
 
+// Only these tools produce user-created measurements; Crosshairs (and similar navigation aids)
+// create their own internal annotations to track state, which shouldn't clutter the panel.
+const MEASUREMENT_TOOL_NAMES = new Set([
+  'Length',
+  'Angle',
+  'CobbAngle',
+  'RectangleROI',
+  'EllipticalROI',
+  'ArrowAnnotate',
+]);
+
 function describeAnnotation(annotation: Annotation): { label: string; value: string; unit: string } {
   const toolName = annotation.metadata?.toolName ?? 'Annotation';
   const statsByTarget = annotation.data?.cachedStats as Record<string, Record<string, unknown>> | undefined;
@@ -33,6 +44,7 @@ function describeAnnotation(annotation: Annotation): { label: string; value: str
 
 function toMeasurement(annotation: Annotation): Measurement | null {
   if (!annotation.annotationUID) return null;
+  if (!MEASUREMENT_TOOL_NAMES.has(annotation.metadata?.toolName ?? '')) return null;
   const { label, value, unit } = describeAnnotation(annotation);
   return {
     annotationUID: annotation.annotationUID,
