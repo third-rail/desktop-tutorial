@@ -1,0 +1,17 @@
+{
+  "name": "dicom-viewer",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Fully-featured DICOM viewer — web app and Windows desktop app",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace packages/viewer-app",
+    "build": "npm run build --workspace packages/viewer-app",
+    "dev:electron": "npm run dev --workspace packages/desktop-shell",
+    "build:win": "npm run build --workspace packages/viewer-app && npm run build:win --workspace packages/desktop-shell",
+    "lint": "npm run lint --workspace packages/viewer-app",
+    "typecheck": "npm run typecheck --workspace packages/viewer-app"
+  }
+}
