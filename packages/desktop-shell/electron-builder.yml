@@ -1,0 +1,27 @@
+appId: com.dicomviewer.app
+productName: DICOM Viewer
+# No native Node addons in this app, so skip the native-module rebuild step entirely.
+npmRebuild: false
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**/*
+  - renderer/**/*
+  - package.json
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  fileAssociations:
+    - ext: dcm
+      name: DICOM File
+      description: DICOM medical image file
+      role: Viewer
+nsis:
+  oneClick: false
+  perMachine: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true

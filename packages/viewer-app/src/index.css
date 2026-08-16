@@ -1,0 +1,452 @@
+:root {
+  --bg-0: #05070a;
+  --bg-1: #0b0e14;
+  --bg-2: #12161f;
+  --bg-3: #1a1f2b;
+  --border: #262c3a;
+  --text: #e6e9ef;
+  --text-dim: #8b93a7;
+  --accent: #3ea6ff;
+  --accent-dim: #1f5c8f;
+  --danger: #ff6b6b;
+  --success: #00d68f;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg-0);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+}
+
+button {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--accent-dim);
+}
+
+button.toggle-on {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+select,
+input {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+/* ---------- Empty state ---------- */
+
+.empty-state {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+  border: 2px dashed transparent;
+  padding: 40px;
+}
+
+.empty-state.drag-over {
+  border-color: var(--accent);
+  background: var(--bg-1);
+}
+
+.empty-state h1 {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.empty-state-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.muted {
+  color: var(--text-dim);
+}
+
+.error {
+  color: var(--danger);
+}
+
+/* ---------- App shell ---------- */
+
+.app-shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 8px 12px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.toolbar-group-end {
+  margin-left: auto;
+}
+
+.layout-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-dim);
+}
+
+.app-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* ---------- Left panel ---------- */
+
+.left-panel {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--bg-1);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.left-panel.empty {
+  color: var(--text-dim);
+  padding: 20px;
+}
+
+.patient-header {
+  margin-bottom: 10px;
+}
+
+.patient-name {
+  font-weight: 600;
+}
+
+.patient-meta {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.series-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.series-thumb {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+  padding: 6px;
+  background: var(--bg-2);
+}
+
+.series-thumb-image {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  background: #000;
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.series-thumb-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.series-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-3);
+}
+
+.series-modality-badge {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-size: 9px;
+}
+
+.series-volume-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background: var(--accent-dim);
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-size: 9px;
+}
+
+.series-thumb-label {
+  font-size: 11px;
+  min-width: 0;
+}
+
+.series-thumb-count {
+  color: var(--text-dim);
+}
+
+.popout-active-btn {
+  width: 100%;
+}
+
+/* ---------- Right panel ---------- */
+
+.right-panel {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--bg-1);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.right-panel h3 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+}
+
+.measurements-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.measurements-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-2);
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.measurements-list li div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ---------- Viewport grid ---------- */
+
+.viewport-grid {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+  background: var(--border);
+  min-width: 0;
+  min-height: 0;
+}
+
+.grid-1x1 {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+
+.grid-1x2 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+
+.grid-2x2 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.grid-2x3 {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.viewport-pane {
+  position: relative;
+  background: #000;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.viewport-pane.active {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.viewport-pane.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 12px;
+  text-align: center;
+  padding: 20px;
+  cursor: pointer;
+}
+
+.viewport-canvas-host {
+  position: absolute;
+  inset: 0;
+}
+
+.viewport-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-size: 11px;
+  color: #d8e6ff;
+  text-shadow: 0 1px 2px black;
+}
+
+.overlay-corner {
+  position: absolute;
+  padding: 6px;
+  line-height: 1.4;
+}
+
+.top-left {
+  top: 0;
+  left: 0;
+}
+
+.top-right {
+  top: 0;
+  right: 0;
+  text-align: right;
+}
+
+.bottom-left {
+  bottom: 0;
+  left: 0;
+}
+
+.viewport-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  background: rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.viewport-status.error {
+  color: var(--danger);
+}
+
+.cine-controls {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.cine-controls label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.cine-controls input {
+  width: 48px;
+}
+
+.viewport-3d-controls {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  display: flex;
+  gap: 6px;
+}
+
+/* ---------- Popout ---------- */
+
+.popout-root {
+  height: 100vh;
+  width: 100vw;
+  background: #000;
+  display: flex;
+}
+
+.popout-root .viewport-pane {
+  flex: 1;
+}
+
+.popout-message {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+}

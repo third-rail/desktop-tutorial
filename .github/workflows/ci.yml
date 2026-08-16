@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Typecheck, lint, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck viewer-app
+        run: npm run typecheck --workspace packages/viewer-app
+
+      - name: Lint viewer-app
+        run: npm run lint --workspace packages/viewer-app
+
+      - name: Build viewer-app (web)
+        run: npm run build --workspace packages/viewer-app
+
+      - name: Typecheck & build desktop-shell (Electron main/preload)
+        run: npm run build --workspace packages/desktop-shell
+
+  windows-installer:
+    name: Build Windows installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build Windows NSIS installer
+        run: npm run build:win
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dicom-viewer-windows-installer
+          path: packages/desktop-shell/release/*.exe
+          if-no-files-found: error

@@ -1,0 +1,25 @@
+{
+  "name": "desktop-shell",
+  "private": true,
+  "version": "0.1.0",
+  "description": "DICOM Viewer — Windows 11 desktop shell",
+  "author": "DICOM Viewer",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "npm run build && cross-env DICOM_VIEWER_DEV_URL=http://localhost:5173 electron .",
+    "start": "npm run build && node scripts/copy-renderer.mjs && electron .",
+    "copy-renderer": "node scripts/copy-renderer.mjs",
+    "build:win": "npm run build && npm run copy-renderer && electron-builder --win --config electron-builder.yml"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "cross-env": "^7.0.3",
+    "electron": "33.4.11",
+    "electron-builder": "^25.1.8",
+    "typescript": "~6.0.2"
+  },
+  "dependencies": {
+    "app-builder-bin": "^5.0.0-alpha.10"
+  }
+}
