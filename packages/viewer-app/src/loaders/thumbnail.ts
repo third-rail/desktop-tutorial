@@ -2,6 +2,38 @@ import { imageLoader } from '@cornerstonejs/core';
 
 const cache = new Map<string, Promise<string>>();
 
+export interface VoiWindowParams {
+  slope: number;
+  intercept: number;
+  windowCenter?: number;
+  windowWidth?: number;
+  minPixelValue: number;
+  maxPixelValue: number;
+  invert: boolean;
+}
+
+/**
+ * Applies rescale slope/intercept and VOI windowing to raw pixel data, returning 0-255 grayscale
+ * bytes. Falls back to the image's min/max pixel value when no window center/width is present.
+ */
+export function applyVoiWindow(pixelData: ArrayLike<number>, params: VoiWindowParams): Uint8ClampedArray {
+  const { slope, intercept, windowCenter, windowWidth, minPixelValue, maxPixelValue, invert } = params;
+  const hasWindow = typeof windowCenter === 'number' && typeof windowWidth === 'number' && windowWidth > 0;
+  const lower = hasWindow ? windowCenter - windowWidth / 2 : minPixelValue;
+  const upper = hasWindow ? windowCenter + windowWidth / 2 : maxPixelValue;
+  const range = Math.max(1, upper - lower);
+
+  const out = new Uint8ClampedArray(pixelData.length);
+  for (let i = 0; i < pixelData.length; i++) {
+    const raw = pixelData[i] * slope + intercept;
+    let normalized = Math.round(((raw - lower) / range) * 255);
+    normalized = Math.max(0, Math.min(255, normalized));
+    if (invert) normalized = 255 - normalized;
+    out[i] = normalized;
+  }
+  return out;
+}
+
 /** Renders a small preview PNG data URL for the first instance of a series. */
 export function getThumbnailDataUrl(imageId: string, size = 96): Promise<string> {
   const cached = cache.get(imageId);
@@ -26,21 +58,21 @@ export function getThumbnailDataUrl(imageId: string, size = 96): Promise<string>
       const imageData = sourceCtx.createImageData(image.columns, image.rows);
       const windowCenter = Array.isArray(image.windowCenter) ? image.windowCenter[0] : image.windowCenter;
       const windowWidth = Array.isArray(image.windowWidth) ? image.windowWidth[0] : image.windowWidth;
-      const hasWindow = typeof windowCenter === 'number' && typeof windowWidth === 'number' && windowWidth > 0;
-      const lower = hasWindow ? windowCenter - windowWidth / 2 : image.minPixelValue;
-      const upper = hasWindow ? windowCenter + windowWidth / 2 : image.maxPixelValue;
-      const range = Math.max(1, upper - lower);
-      const invert = image.invert;
+      const normalized = applyVoiWindow(pixelData, {
+        slope: image.slope,
+        intercept: image.intercept,
+        windowCenter,
+        windowWidth,
+        minPixelValue: image.minPixelValue,
+        maxPixelValue: image.maxPixelValue,
+        invert: image.invert,
+      });
 
-      for (let i = 0; i < pixelData.length; i++) {
-        const raw = pixelData[i] * image.slope + image.intercept;
-        let normalized = Math.round(((raw - lower) / range) * 255);
-        normalized = Math.max(0, Math.min(255, normalized));
-        if (invert) normalized = 255 - normalized;
+      for (let i = 0; i < normalized.length; i++) {
         const offset = i * 4;
-        imageData.data[offset] = normalized;
-        imageData.data[offset + 1] = normalized;
-        imageData.data[offset + 2] = normalized;
+        imageData.data[offset] = normalized[i];
+        imageData.data[offset + 1] = normalized[i];
+        imageData.data[offset + 2] = normalized[i];
         imageData.data[offset + 3] = 255;
       }
       sourceCtx.putImageData(imageData, 0, 0);

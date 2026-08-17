@@ -12,6 +12,7 @@
     "dev:electron": "npm run dev --workspace packages/desktop-shell",
     "build:win": "npm run build --workspace packages/viewer-app && npm run build:win --workspace packages/desktop-shell",
     "lint": "npm run lint --workspace packages/viewer-app",
-    "typecheck": "npm run typecheck --workspace packages/viewer-app"
+    "typecheck": "npm run typecheck --workspace packages/viewer-app",
+    "test": "npm run test --workspace packages/viewer-app"
   }
 }
