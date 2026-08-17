@@ -26,6 +26,9 @@ jobs:
       - name: Lint viewer-app
         run: npm run lint --workspace packages/viewer-app
 
+      - name: Test viewer-app
+        run: npm run test --workspace packages/viewer-app
+
       - name: Build viewer-app (web)
         run: npm run build --workspace packages/viewer-app
 

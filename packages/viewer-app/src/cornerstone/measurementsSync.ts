@@ -17,7 +17,7 @@ const MEASUREMENT_TOOL_NAMES = new Set([
   'ArrowAnnotate',
 ]);
 
-function describeAnnotation(annotation: Annotation): { label: string; value: string; unit: string } {
+export function describeAnnotation(annotation: Annotation): { label: string; value: string; unit: string } {
   const toolName = annotation.metadata?.toolName ?? 'Annotation';
   const statsByTarget = annotation.data?.cachedStats as Record<string, Record<string, unknown>> | undefined;
   const firstStats = statsByTarget ? Object.values(statsByTarget)[0] : undefined;
@@ -42,7 +42,7 @@ function describeAnnotation(annotation: Annotation): { label: string; value: str
   return { label: toolName, value: '—', unit: '' };
 }
 
-function toMeasurement(annotation: Annotation): Measurement | null {
+export function toMeasurement(annotation: Annotation): Measurement | null {
   if (!annotation.annotationUID) return null;
   if (!MEASUREMENT_TOOL_NAMES.has(annotation.metadata?.toolName ?? '')) return null;
   const { label, value, unit } = describeAnnotation(annotation);
