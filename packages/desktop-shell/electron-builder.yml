@@ -2,6 +2,15 @@ appId: com.dicomviewer.app
 productName: DICOM Viewer
 # No native Node addons in this app, so skip the native-module rebuild step entirely.
 npmRebuild: false
+# Lets electron-updater (wired up in src/main.ts) check GitHub Releases for newer versions at
+# runtime. Build scripts pass --publish never so electron-builder itself never pushes a release —
+# the release.yml workflow does that via softprops/action-gh-release — but this config is still
+# needed so the generated update-metadata files (latest.yml etc.) and the app's update-check URL
+# point at the right place.
+publish:
+  provider: github
+  owner: third-rail
+  repo: desktop-tutorial
 directories:
   output: release
   buildResources: build
@@ -9,19 +18,32 @@ files:
   - dist/**/*
   - renderer/**/*
   - package.json
+fileAssociations:
+  - ext: dcm
+    name: DICOM File
+    description: DICOM medical image file
+    role: Viewer
 win:
   target:
     - target: nsis
       arch:
         - x64
-  fileAssociations:
-    - ext: dcm
-      name: DICOM File
-      description: DICOM medical image file
-      role: Viewer
 nsis:
   oneClick: false
   perMachine: true
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  category: public.app-category.healthcare-fitness
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  category: Graphics

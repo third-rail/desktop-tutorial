@@ -53,3 +53,49 @@ jobs:
           name: dicom-viewer-windows-installer
           path: packages/desktop-shell/release/*.exe
           if-no-files-found: error
+
+  macos-installer:
+    name: Build macOS installer
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build macOS DMG (unsigned)
+        run: npm run build:mac
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dicom-viewer-macos-installer
+          path: packages/desktop-shell/release/*.dmg
+          if-no-files-found: error
+
+  linux-installer:
+    name: Build Linux installer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build Linux AppImage
+        run: npm run build:linux
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dicom-viewer-linux-installer
+          path: packages/desktop-shell/release/*.AppImage
+          if-no-files-found: error
