@@ -41,6 +41,7 @@ export function ensureCornerstoneInitialized(): Promise<void> {
       CrosshairsTool,
       TrackballRotateTool,
       VolumeRotateTool,
+      VolumeCroppingTool,
       MagnifyTool,
       addTool,
     } = cornerstoneTools;
@@ -58,6 +59,7 @@ export function ensureCornerstoneInitialized(): Promise<void> {
       CrosshairsTool,
       TrackballRotateTool,
       VolumeRotateTool,
+      VolumeCroppingTool,
       MagnifyTool,
     ]) {
       addTool(Tool);
