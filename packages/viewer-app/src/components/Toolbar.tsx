@@ -7,6 +7,7 @@ import { openAndLoad } from '../loaders/openAndIngest';
 import { closeAllStudies } from '../loaders/closeStudies';
 import { exportActiveViewportAsPdf } from '../export/pdfReport';
 import { exportMeasurementsJson } from '../export/annotationExport';
+import { applyWindowPreset, WINDOW_PRESETS } from '../cornerstone/windowPresets';
 import {
   IconAngle,
   IconArrow,
@@ -93,8 +94,14 @@ export default function Toolbar() {
   const toggleLeftPanel = useViewerStore((s) => s.toggleLeftPanel);
   const toggleRightPanel = useViewerStore((s) => s.toggleRightPanel);
   const activeSlotId = useViewerStore((s) => s.activeSlotId);
+  const slots = useViewerStore((s) => s.slots);
   const measurements = useViewerStore((s) => s.measurements);
   const studies = useViewerStore((s) => s.studies);
+
+  // Window/level presets only make sense on a plain 2D stack — MPR/3D viewports use volume
+  // rendering properties instead, and an empty slot has no image to window.
+  const activeSlotKind = slots.find((s) => s.id === activeSlotId)?.kind;
+  const canApplyWindowPreset = activeSlotKind === 'stack';
 
   function handleToolSelect(tool: PrimaryToolName) {
     setPrimaryToolInStore(tool);
@@ -129,6 +136,31 @@ export default function Toolbar() {
             />
           );
         })}
+      </div>
+
+      <div className="toolbar-group toolbar-group-window" role="group" aria-label="Window presets">
+        <label className="layout-picker">
+          Window
+          <select
+            value=""
+            disabled={!canApplyWindowPreset}
+            title={canApplyWindowPreset ? 'Apply a window/level preset' : 'Select a 2D image to enable presets'}
+            onChange={(e) => {
+              const preset = WINDOW_PRESETS.find((p) => p.id === e.target.value);
+              if (preset && activeSlotId) applyWindowPreset(activeSlotId, preset);
+              e.target.value = '';
+            }}
+          >
+            <option value="" disabled>
+              Presets…
+            </option>
+            {WINDOW_PRESETS.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <div className="toolbar-group toolbar-group-layout" role="group" aria-label="Layout">

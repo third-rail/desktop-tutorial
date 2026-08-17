@@ -3,6 +3,7 @@ import { useViewerStore } from '../state/store';
 import { ensureCornerstoneInitialized } from '../cornerstone/init';
 import { createStackToolGroup, createMprToolGroup, createVolume3dToolGroup } from '../cornerstone/toolGroups';
 import { ensureMeasurementsSync } from '../cornerstone/measurementsSync';
+import { installKeyboardShortcuts } from '../cornerstone/keyboardShortcuts';
 import { listenForPopoutRequests } from '../platform/popoutChannel';
 import { isElectron } from '../platform/platform';
 import { openAndLoad, loadRawFiles } from '../loaders/openAndIngest';
@@ -27,7 +28,13 @@ export default function App() {
       createMprToolGroup();
       createVolume3dToolGroup();
       ensureMeasurementsSync();
-      if (!popoutSlotId) listenForPopoutRequests();
+      if (!popoutSlotId) {
+        listenForPopoutRequests();
+        // Shortcuts key off activeSlotId, which pop-out windows never set (their viewport uses
+        // a fixed slotId of 'popout') — scoping this to the main window keeps that a no-op
+        // instead of a silent mismatch.
+        installKeyboardShortcuts();
+      }
     });
   }, [popoutSlotId]);
 

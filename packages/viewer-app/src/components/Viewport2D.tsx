@@ -4,6 +4,7 @@ import * as cornerstoneTools from '@cornerstonejs/tools';
 import { ensureCornerstoneInitialized } from '../cornerstone/init';
 import { getOrCreateRenderingEngine } from '../cornerstone/renderingEngine';
 import { STACK_TOOL_GROUP_ID } from '../cornerstone/toolGroups';
+import { registerViewportControls } from '../cornerstone/activeViewportControls';
 import { useViewerStore, findSeries } from '../state/store';
 import type { DicomSeries, DicomStudy } from '../types/dicom';
 import CineControls from './CineControls';
@@ -66,6 +67,8 @@ export default function Viewport2D({ slotId, seriesInstanceUID, active, onActiva
         const camera = viewport.getCamera();
         baseParallelScale = camera.parallelScale ?? 1;
 
+        cleanupFns.push(registerViewportControls(slotId, { scroll: (delta) => viewport.scroll(delta) }));
+
         updateOverlay(viewport);
         setStatus('ready');
 
@@ -126,6 +129,7 @@ export default function Viewport2D({ slotId, seriesInstanceUID, active, onActiva
       {status === 'error' && <div className="viewport-status error">Could not decode this image</div>}
       {found.series.isMultiframeCine && (
         <CineControls
+          slotId={slotId}
           viewportId={viewportId}
           numberOfFrames={overlay.count}
           isPlaying={isCinePlaying}

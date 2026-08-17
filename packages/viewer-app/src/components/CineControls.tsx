@@ -1,15 +1,17 @@
 import { getEnabledElementByViewportId } from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { registerViewportControls } from '../cornerstone/activeViewportControls';
 
 interface Props {
+  slotId: string;
   viewportId: string;
   numberOfFrames: number;
   isPlaying: boolean;
   onPlayingChange: (playing: boolean) => void;
 }
 
-export default function CineControls({ viewportId, isPlaying, onPlayingChange }: Props) {
+export default function CineControls({ slotId, viewportId, isPlaying, onPlayingChange }: Props) {
   const [fps, setFps] = useState(15);
 
   function togglePlay() {
@@ -23,6 +25,14 @@ export default function CineControls({ viewportId, isPlaying, onPlayingChange }:
     }
     onPlayingChange(!isPlaying);
   }
+
+  // Exposes the Space-bar shortcut a way to reach this specific pane's play/pause without every
+  // caller needing viewportId/fps/isPlaying — re-registers whenever those change so the shortcut
+  // always toggles from the current state rather than a stale closure.
+  useEffect(() => {
+    return registerViewportControls(slotId, { toggleCine: togglePlay });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slotId, viewportId, isPlaying, fps]);
 
   return (
     <div className="cine-controls" onClick={(e) => e.stopPropagation()}>

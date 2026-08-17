@@ -23,6 +23,10 @@ interface SlotDataRequest {
   slotId: string;
 }
 
+interface StudiesClosedMessage {
+  type: 'studies-closed';
+}
+
 function getChannel() {
   return new BroadcastChannel('dicom-viewer-popout');
 }
@@ -87,4 +91,26 @@ export function requestSlotData(
     const request: SlotDataRequest = { type: 'request-slot', slotId };
     channel.postMessage(request);
   });
+}
+
+/**
+ * Called from the main window when the loaded study is closed. Pop-out windows hold their own
+ * independent copy of the data (fetched once via requestSlotData) and aren't otherwise told the
+ * main window moved on, so without this a pop-out would keep showing a now-closed study
+ * indefinitely with no indication anything changed.
+ */
+export function notifyStudiesClosed() {
+  const channel = getChannel();
+  const message: StudiesClosedMessage = { type: 'studies-closed' };
+  channel.postMessage(message);
+  channel.close();
+}
+
+/** Called from a pop-out window to react when the main window closes the study. */
+export function listenForStudiesClosed(callback: () => void): () => void {
+  const channel = getChannel();
+  channel.onmessage = (event: MessageEvent<StudiesClosedMessage>) => {
+    if (event.data?.type === 'studies-closed') callback();
+  };
+  return () => channel.close();
 }
