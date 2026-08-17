@@ -51,6 +51,33 @@ jobs:
       - name: Build Windows NSIS installer
         run: npm run build:win
 
+      - name: Smoke-test installer (silent install + launch)
+        shell: pwsh
+        timeout-minutes: 5
+        run: |
+          $installer = Get-ChildItem -Path packages/desktop-shell/release -Filter *.exe | Select-Object -First 1
+          if (-not $installer) { throw "No installer .exe found in release output" }
+          Write-Host "Silently installing $($installer.FullName)"
+          $setup = Start-Process -FilePath $installer.FullName -ArgumentList '/S' -PassThru -Wait
+          if ($setup.ExitCode -ne 0) { throw "Installer exited with code $($setup.ExitCode)" }
+
+          $exe = Get-ChildItem -Path "$env:ProgramFiles", "$env:LOCALAPPDATA\Programs" -Recurse -Filter "DICOM Viewer.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) { throw "Installed DICOM Viewer.exe not found after silent install" }
+          Write-Host "Launching $($exe.FullName)"
+          $appProc = Start-Process -FilePath $exe.FullName -ArgumentList '--no-sandbox', '--disable-gpu' -PassThru
+
+          Start-Sleep -Seconds 15
+          $appProc.Refresh()
+          if ($appProc.HasExited) {
+            throw "App exited on its own within 15s of launch (exit code $($appProc.ExitCode)) -- crashed on startup"
+          }
+          if ([string]::IsNullOrWhiteSpace($appProc.MainWindowTitle)) {
+            Stop-Process -Id $appProc.Id -Force -ErrorAction SilentlyContinue
+            throw "App process is running but never produced a main window -- likely failed to render"
+          }
+          Write-Host "App launched successfully, window title: '$($appProc.MainWindowTitle)'"
+          Stop-Process -Id $appProc.Id -Force
+
       - uses: actions/upload-artifact@v4
         with:
           name: dicom-viewer-windows-installer
