@@ -5,6 +5,7 @@ import { RENDERING_ENGINE_ID } from '../cornerstone/init';
 import { clearVolumeCache } from '../cornerstone/volumes';
 import { clearThumbnailCache } from './thumbnail';
 import { useViewerStore } from '../state/store';
+import { notifyStudiesClosed } from '../platform/popoutChannel';
 
 /**
  * Unloads the current dataset so another can be opened without restarting the app.
@@ -16,6 +17,10 @@ import { useViewerStore } from '../state/store';
  * an old imageId would be silently served for a completely different file in the next study.
  */
 export function closeAllStudies() {
+  // Pop-out windows hold their own independent copy of the data and otherwise have no way to
+  // learn the main window moved on — tell them before tearing anything down here.
+  notifyStudiesClosed();
+
   getRenderingEngine(RENDERING_ENGINE_ID)?.destroy();
 
   cornerstoneTools.annotation.state.removeAllAnnotations();
