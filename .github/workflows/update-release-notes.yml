@@ -1,0 +1,26 @@
+name: Update Release Notes
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Existing release tag to update (e.g. v0.3.0)"
+        required: true
+      notes:
+        description: "New release notes (Markdown), replaces the current notes entirely"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  update-notes:
+    name: Update release notes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Edit release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.tag_name }}
+          RELEASE_NOTES: ${{ inputs.notes }}
+        run: gh release edit "$RELEASE_TAG" --notes "$RELEASE_NOTES" --repo ${{ github.repository }}
