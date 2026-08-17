@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Enums, type Types } from '@cornerstonejs/core';
+import { Enums, metaData, type Types } from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
 import { ensureCornerstoneInitialized } from '../cornerstone/init';
 import { getOrCreateRenderingEngine } from '../cornerstone/renderingEngine';
 import { STACK_TOOL_GROUP_ID } from '../cornerstone/toolGroups';
 import { registerViewportControls } from '../cornerstone/activeViewportControls';
+import { canvasPixelsPerMm, computeScaleBar, type ScaleBarResult } from '../cornerstone/scaleBar';
 import { useViewerStore, findSeries } from '../state/store';
 import type { DicomSeries, DicomStudy } from '../types/dicom';
 import CineControls from './CineControls';
@@ -28,7 +29,14 @@ export default function Viewport2D({ slotId, seriesInstanceUID, active, onActiva
   const viewportId = `viewport-${slotId}`;
   const studies = useViewerStore((s) => s.studies);
   const found = findSeries(studies, seriesInstanceUID);
-  const [overlay, setOverlay] = useState({ index: 0, count: 0, wc: 0, ww: 0, zoom: 100 });
+  const [overlay, setOverlay] = useState<{
+    index: number;
+    count: number;
+    wc: number;
+    ww: number;
+    zoom: number;
+    scaleBar: ScaleBarResult | null;
+  }>({ index: 0, count: 0, wc: 0, ww: 0, zoom: 100, scaleBar: null });
   const [isCinePlaying, setCinePlaying] = useState(false);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
 
@@ -78,12 +86,26 @@ export default function Viewport2D({ slotId, seriesInstanceUID, active, onActiva
           const zoom = baseParallelScale ? Math.round((baseParallelScale / (cam.parallelScale ?? baseParallelScale)) * 100) : 100;
           const upper = props.voiRange?.upper ?? 0;
           const lower = props.voiRange?.lower ?? 0;
+
+          // Only show a scale bar for images with real DICOM pixel spacing — imagePlaneModule
+          // falls back to 1mm/pixel with usingDefaultValues:true when no spacing tag is present
+          // (common on some CR/DX and secondary-capture images), and a bar drawn against a made-up
+          // spacing would misrepresent size rather than just omit it.
+          const currentImageId = imageIds[vp.getCurrentImageIdIndex()];
+          const planeModule = currentImageId ? metaData.get('imagePlaneModule', currentImageId) : undefined;
+          const isCalibrated = !!planeModule && !planeModule.usingDefaultValues;
+          const scaleBar =
+            isCalibrated && element.clientHeight && cam.parallelScale
+              ? computeScaleBar(canvasPixelsPerMm(element.clientHeight, cam.parallelScale))
+              : null;
+
           setOverlay({
             index: vp.getCurrentImageIdIndex() + 1,
             count: imageIds.length,
             wc: Math.round((upper + lower) / 2),
             ww: Math.round(upper - lower),
             zoom,
+            scaleBar,
           });
         }
 
@@ -147,7 +169,7 @@ function ViewportOverlay({
 }: {
   study: DicomStudy;
   series: DicomSeries;
-  overlay: { index: number; count: number; wc: number; ww: number; zoom: number };
+  overlay: { index: number; count: number; wc: number; ww: number; zoom: number; scaleBar: ScaleBarResult | null };
 }) {
   return (
     <div className="viewport-overlay">
@@ -171,6 +193,12 @@ function ViewportOverlay({
         </div>
         <div>Zoom {overlay.zoom}%</div>
       </div>
+      {overlay.scaleBar && (
+        <div className="overlay-corner bottom-right">
+          <div className="scale-bar" style={{ width: overlay.scaleBar.widthPx }} />
+          <div className="scale-bar-label">{overlay.scaleBar.label}</div>
+        </div>
+      )}
     </div>
   );
 }

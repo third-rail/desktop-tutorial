@@ -600,6 +600,43 @@ body.resizing-panel {
   left: 0;
 }
 
+.bottom-right {
+  bottom: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.scale-bar {
+  position: relative;
+  height: 0;
+  border-bottom: 2px solid #d8e6ff;
+}
+
+.scale-bar::before,
+.scale-bar::after {
+  content: '';
+  position: absolute;
+  width: 1px;
+  height: 6px;
+  background: #d8e6ff;
+  transform: translateY(-6px);
+}
+
+.scale-bar::before {
+  left: 0;
+}
+
+.scale-bar::after {
+  right: 0;
+}
+
+.scale-bar-label {
+  font-size: 10px;
+}
+
 .viewport-status {
   position: absolute;
   inset: 0;
