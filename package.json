@@ -1,7 +1,7 @@
 {
   "name": "dicom-viewer",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Fully-featured DICOM viewer — web app and Windows/macOS/Linux desktop app",
   "workspaces": [
     "packages/*"
