@@ -24,13 +24,13 @@ const TAG = {
   pixelData: 'x7fe00010',
 } as const;
 
-interface RawFile {
+export interface RawFile {
   name: string;
   data: Uint8Array;
 }
 
 /** True when the buffer looks like a DICOM Part 10 file (128-byte preamble + "DICM" magic). */
-function isDicomP10(data: Uint8Array): boolean {
+export function isDicomP10(data: Uint8Array): boolean {
   if (data.length < 132) return false;
   return (
     data[128] === 0x44 && // D
@@ -40,7 +40,13 @@ function isDicomP10(data: Uint8Array): boolean {
   );
 }
 
-async function expandZips(files: RawFile[]): Promise<RawFile[]> {
+/** Whether a series with these characteristics should be offered as a 3D volume candidate. */
+export function isVolumeCandidate(modality: string, instanceCount: number, isMultiframeCine: boolean): boolean {
+  const volumeModalities = ['CT', 'MR', 'PT', 'NM'];
+  return volumeModalities.includes(modality) && instanceCount >= 4 && !isMultiframeCine;
+}
+
+export async function expandZips(files: RawFile[]): Promise<RawFile[]> {
   const out: RawFile[] = [];
   for (const file of files) {
     if (!file.name.toLowerCase().endsWith('.zip')) {
@@ -135,9 +141,7 @@ export async function ingestLocalFiles(rawFiles: RawFile[]): Promise<DicomStudy[
   for (const series of seriesByUid.values()) {
     series.instances.sort((a, b) => a.instanceNumber - b.instanceNumber);
     series.isMultiframeCine = series.instances.some((i) => i.numberOfFrames > 1);
-    const volumeModalities = ['CT', 'MR', 'PT', 'NM'];
-    series.isVolumeCandidate =
-      volumeModalities.includes(series.modality) && series.instances.length >= 4 && !series.isMultiframeCine;
+    series.isVolumeCandidate = isVolumeCandidate(series.modality, series.instances.length, series.isMultiframeCine);
   }
 
   for (const study of studiesByUid.values()) {
@@ -147,7 +151,7 @@ export async function ingestLocalFiles(rawFiles: RawFile[]): Promise<DicomStudy[
   return Array.from(studiesByUid.values());
 }
 
-function formatPersonName(dicomName?: string): string {
+export function formatPersonName(dicomName?: string): string {
   if (!dicomName) return '(unknown)';
   return dicomName.split('^').filter(Boolean).join(' ') || dicomName;
 }
