@@ -34,3 +34,28 @@ export function closeAllStudies() {
 
   useViewerStore.getState().resetStudies();
 }
+
+/**
+ * Entry point every UI trigger (toolbar button, File menu, Ctrl+W) should call instead of
+ * closeAllStudies() directly. Confirms first only when there's something a user could actually
+ * lose: unexported measurements. The loaded images themselves aren't worth a prompt over — they're
+ * just a re-open of the same files — but a measurement with no export has no other copy anywhere.
+ *
+ * `confirm` is injectable (defaulting to the real window.confirm) purely so this gating logic is
+ * unit-testable without a DOM environment; callers never need to pass it.
+ */
+export function confirmAndCloseStudies(confirm: (message: string) => boolean = (message) => window.confirm(message)) {
+  const { studies, measurements } = useViewerStore.getState();
+  if (studies.length === 0) return;
+
+  if (measurements.length > 0) {
+    const noun = measurements.length === 1 ? 'measurement' : 'measurements';
+    const verb = measurements.length === 1 ? "hasn't" : "haven't";
+    const confirmed = confirm(
+      `Close the loaded study? You have ${measurements.length} ${noun} that ${verb} been exported and will be lost.`,
+    );
+    if (!confirmed) return;
+  }
+
+  closeAllStudies();
+}
