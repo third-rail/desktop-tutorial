@@ -3,6 +3,7 @@ import { useViewerStore } from '../state/store';
 import type { DicomSeries } from '../types/dicom';
 import { getThumbnailDataUrl } from '../loaders/thumbnail';
 import { popoutViewport } from '../platform/platform';
+import PanelResizer from './PanelResizer';
 
 export default function LeftPanel() {
   const studies = useViewerStore((s) => s.studies);
@@ -10,6 +11,8 @@ export default function LeftPanel() {
   const activeSlotId = useViewerStore((s) => s.activeSlotId);
   const assignSeriesToActiveSlot = useViewerStore((s) => s.assignSeriesToActiveSlot);
   const assignSeriesToAllSlots = useViewerStore((s) => s.assignSeriesToAllSlots);
+  const width = useViewerStore((s) => s.leftPanelWidth);
+  const setWidth = useViewerStore((s) => s.setLeftPanelWidth);
 
   function handleSelectSeries(series: DicomSeries) {
     if (layout === 'mpr3d' && series.isVolumeCandidate) {
@@ -21,14 +24,16 @@ export default function LeftPanel() {
 
   if (studies.length === 0) {
     return (
-      <div className="left-panel empty">
+      <div className="left-panel empty" style={{ width }}>
         <p>No studies loaded yet.</p>
+        <PanelResizer side="left" width={width} onResize={setWidth} />
       </div>
     );
   }
 
   return (
-    <div className="left-panel">
+    <div className="left-panel" style={{ width }}>
+      <PanelResizer side="left" width={width} onResize={setWidth} />
       {studies.map((study) => (
         <div key={study.studyInstanceUID} className="study-block">
           <div className="patient-header">

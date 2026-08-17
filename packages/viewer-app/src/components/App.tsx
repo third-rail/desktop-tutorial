@@ -6,6 +6,7 @@ import { ensureMeasurementsSync } from '../cornerstone/measurementsSync';
 import { listenForPopoutRequests } from '../platform/popoutChannel';
 import { isElectron } from '../platform/platform';
 import { openAndLoad, loadRawFiles } from '../loaders/openAndIngest';
+import { closeAllStudies } from '../loaders/closeStudies';
 import EmptyState from './EmptyState';
 import Toolbar from './Toolbar';
 import LeftPanel from './LeftPanel';
@@ -35,6 +36,7 @@ export default function App() {
     const bridge = window.dicomViewer!;
     bridge.onMenuOpenFiles(() => openAndLoad('files'));
     bridge.onMenuOpenFolder(() => openAndLoad('folder'));
+    bridge.onMenuCloseStudy(() => closeAllStudies());
     bridge.onOpenPath((file) => loadRawFiles([file]));
   }, [popoutSlotId]);
 

@@ -1,15 +1,28 @@
 :root {
+  /* Clinical teal on a near-black reading-room ground. Teal is kept well away from the
+     yellow/green/red Cornerstone draws annotations in, so an active tool can never be mistaken
+     for a finding on the image. */
   --bg-0: #05070a;
   --bg-1: #0b0e14;
   --bg-2: #12161f;
-  --bg-3: #1a1f2b;
-  --border: #262c3a;
+  --bg-3: #19222b;
+  --border: #24303a;
   --text: #e6e9ef;
   --text-dim: #8b93a7;
-  --accent: #3ea6ff;
-  --accent-dim: #1f5c8f;
+  --accent: #4db6ac;
+  --accent-dim: #2a6b64;
+  --accent-glow: #7fd4cc;
   --danger: #ff6b6b;
   --success: #00d68f;
+
+  /* Per-function toolbar tints. Kept low-chroma so the chrome never competes with the image. */
+  --group-file-bg: #141a21;
+  --group-file-border: #253039;
+  --group-tools-bg: #132025;
+  --group-tools-border: #24404180;
+  --group-muted-bg: #11151b;
+  --group-muted-border: #212932;
+
   color-scheme: dark;
 }
 
@@ -54,6 +67,13 @@ button.toggle-on {
 button:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 select,
@@ -113,22 +133,102 @@ input {
 
 .toolbar {
   display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 8px 12px;
-  background: var(--bg-1);
+  align-items: stretch;
+  gap: 14px;
+  padding: 6px 10px;
+  background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg-1) 100%);
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
 }
 
+/* Each group is a joined segment: related actions read as one control, and a thin gap plus the
+   group's own tint separates it from the next. */
 .toolbar-group {
   display: flex;
-  gap: 6px;
+  align-items: stretch;
+  border: 1px solid var(--group-muted-border);
+  border-radius: 6px;
+  background: var(--group-muted-bg);
+  overflow: hidden;
+}
+
+.toolbar-group-file {
+  background: var(--group-file-bg);
+  border-color: var(--group-file-border);
+}
+
+.toolbar-group-tools {
+  background: var(--group-tools-bg);
+  border-color: var(--group-tools-border);
+}
+
+.toolbar-group-layout {
   align-items: center;
+  padding: 0 10px;
 }
 
 .toolbar-group-end {
   margin-left: auto;
+}
+
+/* Buttons inside a group are seamless: the group owns the outer radius and border, and members
+   are divided by a single hairline rather than each carrying its own box. */
+.toolbar-group .tool-button {
+  border: 0;
+  border-radius: 0;
+  border-left: 1px solid var(--border);
+  background: transparent;
+}
+
+.toolbar-group .tool-button:first-child {
+  border-left: 0;
+}
+
+.tool-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 62px;
+  padding: 5px 8px 4px;
+  color: var(--text-dim);
+  font-size: 10px;
+  line-height: 1;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.tool-button-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+}
+
+.tool-button-label {
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+.tool-button:hover:not(:disabled) {
+  background: #ffffff0d;
+  color: var(--text);
+}
+
+.tool-button.toggle-on {
+  background: var(--accent-dim);
+  color: #ffffff;
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.tool-button.toggle-on:hover:not(:disabled) {
+  background: var(--accent-dim);
+}
+
+/* Measurement tools are the group the eye should land on first, so their active state carries the
+   full accent while file/export actions stay recessive. */
+.toolbar-group-tools .tool-button.toggle-on {
+  color: var(--accent-glow);
 }
 
 .layout-picker {
@@ -136,6 +236,8 @@ input {
   align-items: center;
   gap: 6px;
   color: var(--text-dim);
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 .app-body {
@@ -146,8 +248,10 @@ input {
 
 /* ---------- Left panel ---------- */
 
+/* Width is driven by the store (inline style) so it can be dragged; position:relative anchors the
+   resize handle to the panel's inner edge. */
 .left-panel {
-  width: 260px;
+  position: relative;
   flex-shrink: 0;
   background: var(--bg-1);
   border-right: 1px solid var(--border);
@@ -187,6 +291,14 @@ input {
   text-align: left;
   padding: 6px;
   background: var(--bg-2);
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+/* A full-width accent fill is too loud for a row this size — mark hover with a tinted edge and a
+   faint wash instead, so the thumbnail image stays the brightest thing in the row. */
+.series-thumb:hover {
+  background: var(--bg-3);
+  border-color: var(--accent-dim);
 }
 
 .series-thumb-image {
@@ -245,17 +357,71 @@ input {
 
 .popout-active-btn {
   width: 100%;
+  background: var(--bg-2);
+}
+
+.popout-active-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--accent-dim);
 }
 
 /* ---------- Right panel ---------- */
 
 .right-panel {
-  width: 260px;
+  position: relative;
   flex-shrink: 0;
   background: var(--bg-1);
   border-left: 1px solid var(--border);
   overflow-y: auto;
   padding: 10px;
+}
+
+/* ---------- Panel resize handles ---------- */
+
+.panel-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  cursor: col-resize;
+  z-index: 5;
+  background: transparent;
+  transition: background 120ms ease;
+}
+
+/* Sticky so the handle stays on screen while the panel's content scrolls under it. */
+.panel-resizer-left {
+  right: 0;
+  position: sticky;
+  float: right;
+  height: 100%;
+  margin-right: -10px;
+}
+
+.panel-resizer-right {
+  left: 0;
+  position: sticky;
+  float: left;
+  height: 100%;
+  margin-left: -10px;
+}
+
+.panel-resizer:hover,
+.panel-resizer.dragging,
+.panel-resizer:focus-visible {
+  background: var(--accent-dim);
+  outline: none;
+}
+
+.panel-resizer.dragging {
+  background: var(--accent);
+}
+
+/* While dragging, stop the pointer from selecting text or turning into an I-beam over the
+   viewports it passes across. */
+body.resizing-panel {
+  cursor: col-resize;
+  user-select: none;
 }
 
 .right-panel h3 {

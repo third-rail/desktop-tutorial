@@ -2,6 +2,40 @@ import { create } from 'zustand';
 import type { DicomStudy, Measurement } from '../types/dicom';
 import type { PrimaryToolName } from '../cornerstone/toolGroups';
 
+export const PANEL_MIN_WIDTH = 180;
+export const PANEL_MAX_WIDTH = 640;
+const PANEL_DEFAULT_WIDTH = 260;
+
+const PANEL_WIDTH_STORAGE_KEY = 'dicom-viewer:panel-widths';
+
+export function clampPanelWidth(width: number): number {
+  return Math.min(PANEL_MAX_WIDTH, Math.max(PANEL_MIN_WIDTH, Math.round(width)));
+}
+
+function loadStoredPanelWidths(): { left: number; right: number } {
+  const fallback = { left: PANEL_DEFAULT_WIDTH, right: PANEL_DEFAULT_WIDTH };
+  try {
+    const raw = localStorage.getItem(PANEL_WIDTH_STORAGE_KEY);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as { left?: unknown; right?: unknown };
+    return {
+      left: typeof parsed.left === 'number' ? clampPanelWidth(parsed.left) : fallback.left,
+      right: typeof parsed.right === 'number' ? clampPanelWidth(parsed.right) : fallback.right,
+    };
+  } catch {
+    // Corrupt or unavailable storage (e.g. privacy mode) — panel widths aren't worth failing over.
+    return fallback;
+  }
+}
+
+function persistPanelWidths(left: number, right: number) {
+  try {
+    localStorage.setItem(PANEL_WIDTH_STORAGE_KEY, JSON.stringify({ left, right }));
+  } catch {
+    // Ignore: losing a persisted width is harmless.
+  }
+}
+
 export type ViewportKind = 'empty' | 'stack' | 'mpr-axial' | 'mpr-sagittal' | 'mpr-coronal' | 'volume3d';
 
 export interface ViewportSlot {
@@ -46,12 +80,16 @@ interface ViewerState {
   primaryTool: PrimaryToolName;
   leftPanelOpen: boolean;
   rightPanelOpen: boolean;
+  leftPanelWidth: number;
+  rightPanelWidth: number;
 
   measurements: Measurement[];
 
   setLoading: (loading: boolean) => void;
   setLoadError: (error: string | null) => void;
   addStudies: (studies: DicomStudy[]) => void;
+  /** Clears loaded data and viewport assignments. Prefer closeAllStudies(), which also frees caches. */
+  resetStudies: () => void;
 
   setLayout: (layout: LayoutPreset) => void;
   assignSeriesToActiveSlot: (seriesInstanceUID: string) => void;
@@ -62,6 +100,8 @@ interface ViewerState {
   setPrimaryTool: (tool: PrimaryToolName) => void;
   toggleLeftPanel: () => void;
   toggleRightPanel: () => void;
+  setLeftPanelWidth: (width: number) => void;
+  setRightPanelWidth: (width: number) => void;
 
   setMeasurements: (measurements: Measurement[]) => void;
 }
@@ -78,6 +118,8 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
   primaryTool: 'WindowLevel',
   leftPanelOpen: true,
   rightPanelOpen: true,
+  leftPanelWidth: loadStoredPanelWidths().left,
+  rightPanelWidth: loadStoredPanelWidths().right,
 
   measurements: [],
 
@@ -96,6 +138,16 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
       }
       return { studies: merged };
     }),
+
+  resetStudies: () =>
+    set((state) => ({
+      studies: [],
+      loadError: null,
+      isLoading: false,
+      measurements: [],
+      slots: buildSlotsForLayout(state.layout),
+      activeSlotId: 'slot-0',
+    })),
 
   setLayout: (layout) => set({ layout, slots: buildSlotsForLayout(layout), activeSlotId: `slot-0` }),
 
@@ -124,6 +176,20 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
   setPrimaryTool: (tool) => set({ primaryTool: tool }),
   toggleLeftPanel: () => set((s) => ({ leftPanelOpen: !s.leftPanelOpen })),
   toggleRightPanel: () => set((s) => ({ rightPanelOpen: !s.rightPanelOpen })),
+
+  setLeftPanelWidth: (width) =>
+    set((s) => {
+      const leftPanelWidth = clampPanelWidth(width);
+      persistPanelWidths(leftPanelWidth, s.rightPanelWidth);
+      return { leftPanelWidth };
+    }),
+
+  setRightPanelWidth: (width) =>
+    set((s) => {
+      const rightPanelWidth = clampPanelWidth(width);
+      persistPanelWidths(s.leftPanelWidth, rightPanelWidth);
+      return { rightPanelWidth };
+    }),
 
   setMeasurements: (measurements) => set({ measurements }),
 }));

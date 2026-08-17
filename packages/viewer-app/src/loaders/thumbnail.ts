@@ -2,6 +2,14 @@ import { imageLoader } from '@cornerstonejs/core';
 
 const cache = new Map<string, Promise<string>>();
 
+/**
+ * Drops every cached thumbnail. Required when closing a study: thumbnails are keyed by imageId,
+ * and imageIds are recycled from zero once the DICOM loader's file manager is purged.
+ */
+export function clearThumbnailCache() {
+  cache.clear();
+}
+
 export interface VoiWindowParams {
   slope: number;
   intercept: number;
