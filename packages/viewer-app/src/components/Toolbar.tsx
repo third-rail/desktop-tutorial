@@ -1,10 +1,30 @@
+import type { ReactNode } from 'react';
 import { useViewerStore } from '../state/store';
 import type { LayoutPreset } from '../state/store';
 import { ANNOTATION_TOOL_NAMES, setPrimaryTool, STACK_TOOL_GROUP_ID, MPR_TOOL_GROUP_ID } from '../cornerstone/toolGroups';
 import type { PrimaryToolName } from '../cornerstone/toolGroups';
 import { openAndLoad } from '../loaders/openAndIngest';
+import { closeAllStudies } from '../loaders/closeStudies';
 import { exportActiveViewportAsPdf } from '../export/pdfReport';
 import { exportMeasurementsJson } from '../export/annotationExport';
+import {
+  IconAngle,
+  IconArrow,
+  IconCloseStudy,
+  IconCrosshairs,
+  IconEllipseRoi,
+  IconExportData,
+  IconExportPdf,
+  IconLength,
+  IconOpenFiles,
+  IconOpenFolder,
+  IconPan,
+  IconPanelLeft,
+  IconPanelRight,
+  IconRectangleRoi,
+  IconWindowLevel,
+  IconZoom,
+} from './icons';
 
 const TOOL_LABELS: Record<PrimaryToolName, string> = {
   WindowLevel: 'Window/Level',
@@ -12,10 +32,22 @@ const TOOL_LABELS: Record<PrimaryToolName, string> = {
   Zoom: 'Zoom',
   Length: 'Length',
   Angle: 'Angle',
-  RectangleROI: 'Rectangle ROI',
-  EllipticalROI: 'Ellipse ROI',
+  RectangleROI: 'Rectangle',
+  EllipticalROI: 'Ellipse',
   ArrowAnnotate: 'Arrow',
   Crosshairs: 'Crosshairs',
+};
+
+const TOOL_ICONS: Record<PrimaryToolName, () => ReactNode> = {
+  WindowLevel: IconWindowLevel,
+  Pan: IconPan,
+  Zoom: IconZoom,
+  Length: IconLength,
+  Angle: IconAngle,
+  RectangleROI: IconRectangleRoi,
+  EllipticalROI: IconEllipseRoi,
+  ArrowAnnotate: IconArrow,
+  Crosshairs: IconCrosshairs,
 };
 
 const LAYOUTS: { id: LayoutPreset; label: string }[] = [
@@ -26,15 +58,43 @@ const LAYOUTS: { id: LayoutPreset; label: string }[] = [
   { id: 'mpr3d', label: 'MPR + 3D' },
 ];
 
+interface ToolButtonProps {
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+  disabled?: boolean;
+  title?: string;
+}
+
+function ToolButton({ icon, label, onClick, active, disabled, title }: ToolButtonProps) {
+  return (
+    <button
+      type="button"
+      className={`tool-button ${active ? 'toggle-on' : ''}`}
+      onClick={onClick}
+      disabled={disabled}
+      title={title ?? label}
+      aria-pressed={active}
+    >
+      <span className="tool-button-icon">{icon}</span>
+      <span className="tool-button-label">{label}</span>
+    </button>
+  );
+}
+
 export default function Toolbar() {
   const primaryTool = useViewerStore((s) => s.primaryTool);
   const setPrimaryToolInStore = useViewerStore((s) => s.setPrimaryTool);
   const layout = useViewerStore((s) => s.layout);
   const setLayout = useViewerStore((s) => s.setLayout);
+  const leftPanelOpen = useViewerStore((s) => s.leftPanelOpen);
+  const rightPanelOpen = useViewerStore((s) => s.rightPanelOpen);
   const toggleLeftPanel = useViewerStore((s) => s.toggleLeftPanel);
   const toggleRightPanel = useViewerStore((s) => s.toggleRightPanel);
   const activeSlotId = useViewerStore((s) => s.activeSlotId);
   const measurements = useViewerStore((s) => s.measurements);
+  const studies = useViewerStore((s) => s.studies);
 
   function handleToolSelect(tool: PrimaryToolName) {
     setPrimaryToolInStore(tool);
@@ -44,29 +104,34 @@ export default function Toolbar() {
 
   return (
     <div className="toolbar">
-      <div className="toolbar-group">
-        <button type="button" onClick={() => openAndLoad('files')}>
-          Open Files
-        </button>
-        <button type="button" onClick={() => openAndLoad('folder')}>
-          Open Folder / ZIP
-        </button>
+      <div className="toolbar-group toolbar-group-file" role="group" aria-label="Study">
+        <ToolButton icon={<IconOpenFiles />} label="Open Files" onClick={() => openAndLoad('files')} />
+        <ToolButton icon={<IconOpenFolder />} label="Folder / ZIP" onClick={() => openAndLoad('folder')} />
+        <ToolButton
+          icon={<IconCloseStudy />}
+          label="Close"
+          onClick={closeAllStudies}
+          disabled={studies.length === 0}
+          title="Close the loaded study (Ctrl+W)"
+        />
       </div>
 
-      <div className="toolbar-group">
-        {ANNOTATION_TOOL_NAMES.map((tool) => (
-          <button
-            key={tool}
-            type="button"
-            className={primaryTool === tool ? 'toggle-on' : ''}
-            onClick={() => handleToolSelect(tool)}
-          >
-            {TOOL_LABELS[tool]}
-          </button>
-        ))}
+      <div className="toolbar-group toolbar-group-tools" role="group" aria-label="Tools">
+        {ANNOTATION_TOOL_NAMES.map((tool) => {
+          const Icon = TOOL_ICONS[tool];
+          return (
+            <ToolButton
+              key={tool}
+              icon={<Icon />}
+              label={TOOL_LABELS[tool]}
+              active={primaryTool === tool}
+              onClick={() => handleToolSelect(tool)}
+            />
+          );
+        })}
       </div>
 
-      <div className="toolbar-group">
+      <div className="toolbar-group toolbar-group-layout" role="group" aria-label="Layout">
         <label className="layout-picker">
           Layout
           <select value={layout} onChange={(e) => setLayout(e.target.value as LayoutPreset)}>
@@ -79,23 +144,38 @@ export default function Toolbar() {
         </label>
       </div>
 
-      <div className="toolbar-group toolbar-group-end">
-        <button
-          type="button"
+      <div className="toolbar-group toolbar-group-export toolbar-group-end" role="group" aria-label="Export">
+        <ToolButton
+          icon={<IconExportPdf />}
+          label="PDF"
           disabled={!activeSlotId}
           onClick={() => activeSlotId && exportActiveViewportAsPdf(activeSlotId, measurements)}
-        >
-          Export PDF
-        </button>
-        <button type="button" disabled={measurements.length === 0} onClick={() => exportMeasurementsJson(measurements)}>
-          Export Measurements
-        </button>
-        <button type="button" onClick={toggleLeftPanel}>
-          ◧
-        </button>
-        <button type="button" onClick={toggleRightPanel}>
-          ◨
-        </button>
+          title="Export the active viewport as a PDF report"
+        />
+        <ToolButton
+          icon={<IconExportData />}
+          label="Measurements"
+          disabled={measurements.length === 0}
+          onClick={() => exportMeasurementsJson(measurements)}
+          title="Export measurements as JSON"
+        />
+      </div>
+
+      <div className="toolbar-group toolbar-group-panels" role="group" aria-label="Panels">
+        <ToolButton
+          icon={<IconPanelLeft />}
+          label="Series"
+          active={leftPanelOpen}
+          onClick={toggleLeftPanel}
+          title="Toggle the series panel"
+        />
+        <ToolButton
+          icon={<IconPanelRight />}
+          label="Measure"
+          active={rightPanelOpen}
+          onClick={toggleRightPanel}
+          title="Toggle the measurements panel"
+        />
       </div>
     </div>
   );

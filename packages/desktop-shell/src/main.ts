@@ -105,6 +105,12 @@ function buildMenu() {
           click: () => mainWindow?.webContents.send('menu:open-folder'),
         },
         { type: 'separator' },
+        {
+          label: 'Close Study',
+          accelerator: 'CmdOrCtrl+W',
+          click: () => mainWindow?.webContents.send('menu:close-study'),
+        },
+        { type: 'separator' },
         { role: 'quit' },
       ],
     },

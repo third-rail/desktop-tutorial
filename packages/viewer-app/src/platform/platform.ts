@@ -6,6 +6,7 @@ export interface ElectronBridge {
   popoutViewport(viewportId: string): void;
   onMenuOpenFiles(callback: () => void): void;
   onMenuOpenFolder(callback: () => void): void;
+  onMenuCloseStudy(callback: () => void): void;
   onOpenPath(callback: (file: { name: string; data: Uint8Array }) => void): void;
 }
 

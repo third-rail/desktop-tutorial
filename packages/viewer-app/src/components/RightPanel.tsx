@@ -1,9 +1,12 @@
 import * as cornerstoneTools from '@cornerstonejs/tools';
 import { useViewerStore } from '../state/store';
 import { getOrCreateRenderingEngine } from '../cornerstone/renderingEngine';
+import PanelResizer from './PanelResizer';
 
 export default function RightPanel() {
   const measurements = useViewerStore((s) => s.measurements);
+  const width = useViewerStore((s) => s.rightPanelWidth);
+  const setWidth = useViewerStore((s) => s.setRightPanelWidth);
 
   function removeMeasurement(annotationUID: string) {
     cornerstoneTools.annotation.state.removeAnnotation(annotationUID);
@@ -11,7 +14,8 @@ export default function RightPanel() {
   }
 
   return (
-    <div className="right-panel">
+    <div className="right-panel" style={{ width }}>
+      <PanelResizer side="right" width={width} onResize={setWidth} />
       <h3>Measurements</h3>
       {measurements.length === 0 && <p className="muted">No measurements yet. Use a tool from the toolbar.</p>}
       <ul className="measurements-list">
