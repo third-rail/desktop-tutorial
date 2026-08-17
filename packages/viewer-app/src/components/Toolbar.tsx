@@ -4,7 +4,7 @@ import type { LayoutPreset } from '../state/store';
 import { ANNOTATION_TOOL_NAMES, setPrimaryTool, STACK_TOOL_GROUP_ID, MPR_TOOL_GROUP_ID } from '../cornerstone/toolGroups';
 import type { PrimaryToolName } from '../cornerstone/toolGroups';
 import { openAndLoad } from '../loaders/openAndIngest';
-import { closeAllStudies } from '../loaders/closeStudies';
+import { confirmAndCloseStudies } from '../loaders/closeStudies';
 import { exportActiveViewportAsPdf } from '../export/pdfReport';
 import { exportMeasurementsJson } from '../export/annotationExport';
 import { applyWindowPreset, WINDOW_PRESETS } from '../cornerstone/windowPresets';
@@ -117,7 +117,7 @@ export default function Toolbar() {
         <ToolButton
           icon={<IconCloseStudy />}
           label="Close"
-          onClick={closeAllStudies}
+          onClick={confirmAndCloseStudies}
           disabled={studies.length === 0}
           title="Close the loaded study (Ctrl+W)"
         />
