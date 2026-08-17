@@ -1,10 +1,64 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, session, shell } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, createReadStream } from 'node:fs';
+import http from 'node:http';
 
 const isDev = !!process.env.DICOM_VIEWER_DEV_URL;
-const rendererIndexPath = path.join(__dirname, '..', 'renderer', 'index.html');
+const rendererDir = path.join(__dirname, '..', 'renderer');
+
+// The renderer must NOT be loaded via a raw file:// URL (or a custom protocol scheme — tried and
+// it doesn't work either): Web Workers, which Cornerstone3D's DICOM decoders depend on, silently
+// fail to load their script for both file:// and custom-scheme origins in this Electron version,
+// so decoding hangs forever with no error. Serving it over a real local HTTP server sidesteps the
+// issue entirely, since that's a completely standard origin with no worker-loading edge cases.
+let localServerBaseUrl: string | null = null;
+
+function contentTypeFor(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  const types: Record<string, string> = {
+    '.html': 'text/html; charset=utf-8',
+    '.js': 'text/javascript; charset=utf-8',
+    '.mjs': 'text/javascript; charset=utf-8',
+    '.css': 'text/css; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.svg': 'image/svg+xml',
+    '.png': 'image/png',
+    '.wasm': 'application/wasm',
+    '.map': 'application/json; charset=utf-8',
+  };
+  return types[ext] ?? 'application/octet-stream';
+}
+
+function startLocalServer(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const server = http.createServer(async (req, res) => {
+      try {
+        const url = new URL(req.url ?? '/', 'http://localhost');
+        const relativePath = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname.slice(1));
+        const filePath = path.join(rendererDir, relativePath);
+        if (!filePath.startsWith(rendererDir) || !existsSync(filePath)) {
+          res.writeHead(404).end('Not found');
+          return;
+        }
+        res.setHeader('Content-Type', contentTypeFor(filePath));
+        res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+        res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+        createReadStream(filePath).pipe(res);
+      } catch (err) {
+        res.writeHead(500).end(String(err));
+      }
+    });
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      if (address && typeof address === 'object') {
+        resolve(`http://127.0.0.1:${address.port}`);
+      } else {
+        reject(new Error('Failed to start local renderer server'));
+      }
+    });
+  });
+}
 
 let mainWindow: BrowserWindow | null = null;
 const popoutWindows = new Map<string, BrowserWindow>();
@@ -14,9 +68,7 @@ function rendererUrl(query?: string): string {
   if (isDev) {
     return `${process.env.DICOM_VIEWER_DEV_URL}/${q}`;
   }
-  const url = new URL(`file://${rendererIndexPath}`);
-  if (query) url.search = query;
-  return url.toString();
+  return `${localServerBaseUrl}/index.html${q}`;
 }
 
 function createWindow(query?: string): BrowserWindow {
@@ -96,6 +148,9 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle('dicomViewer:openFolder', async () => {
+    if (process.env.DICOM_VIEWER_TEST_DIR) {
+      return readFilesRecursively(process.env.DICOM_VIEWER_TEST_DIR);
+    }
     const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
     if (result.canceled) return [];
     return readFilesRecursively(result.filePaths[0]);
@@ -113,10 +168,10 @@ function registerIpcHandlers() {
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Cornerstone3D's DICOM codec workers need SharedArrayBuffer, which requires the page to be
-  // cross-origin isolated — Vite's dev server sends these headers itself, but the packaged app's
-  // file:// load needs them set here instead.
+  // cross-origin isolated — Vite's dev server sends these headers itself, and the local server
+  // started below sets them for the packaged app.
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -126,6 +181,10 @@ app.whenReady().then(() => {
       },
     });
   });
+
+  if (!isDev) {
+    localServerBaseUrl = await startLocalServer();
+  }
 
   registerIpcHandlers();
   buildMenu();
