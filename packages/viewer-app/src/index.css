@@ -301,6 +301,52 @@ input {
   border-color: var(--accent-dim);
 }
 
+/* Which series is on screen, and which one the toolbar is actually driving. The active series gets
+   a full accent bar; series visible in other panes get a dimmed one, so a 2x2 layout reads at a
+   glance without four rows all shouting. */
+.series-thumb.is-active {
+  background: var(--bg-3);
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.series-thumb.is-displayed {
+  border-color: var(--accent-dim);
+  box-shadow: inset 3px 0 0 var(--accent-dim);
+}
+
+.series-thumb.is-active .series-thumb-title {
+  color: var(--accent-glow);
+}
+
+.series-thumb-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Chip sits inline after the image count and is allowed to disappear before the count does when
+   the panel is dragged narrow. */
+.series-state {
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--accent);
+  color: #04110f;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.series-state.muted-state {
+  background: transparent;
+  border: 1px solid var(--accent-dim);
+  color: var(--accent);
+  font-weight: 500;
+}
+
 .series-thumb-image {
   position: relative;
   width: 56px;
@@ -349,9 +395,15 @@ input {
 .series-thumb-label {
   font-size: 11px;
   min-width: 0;
+  flex: 1;
 }
 
 .series-thumb-count {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 0;
+  margin-top: 2px;
   color: var(--text-dim);
 }
 
