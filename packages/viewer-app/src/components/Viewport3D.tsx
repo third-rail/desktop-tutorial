@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Enums, setVolumesForViewports, type Types } from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
+import type { VolumeCroppingTool } from '@cornerstonejs/tools';
 import { ensureCornerstoneInitialized } from '../cornerstone/init';
 import { getOrCreateRenderingEngine } from '../cornerstone/renderingEngine';
 import { getOrCreateVolumeForSeries, volumeIdForSeries } from '../cornerstone/volumes';
@@ -99,11 +100,20 @@ export default function Viewport3D({ slotId, seriesInstanceUID, active, onActiva
     if (!toolGroup.hasTool('VolumeCropping')) {
       toolGroup.addTool('VolumeCropping');
     }
+    // VolumeCroppingTool.onSetToolActive() unconditionally resets its own showHandles/
+    // showClippingPlanes config back to false every time it's activated -- despite those
+    // defaulting to true -- so the crop handles and clip effect stay invisible unless we turn
+    // them back on ourselves right after activating.
+    const tool = toolGroup.getToolInstance('VolumeCropping') as VolumeCroppingTool | undefined;
     if (slicerOn) {
       toolGroup.setToolActive('VolumeCropping', {
         bindings: [{ mouseButton: cornerstoneTools.Enums.MouseBindings.Primary }],
       });
+      tool?.setClippingPlanesVisible(true);
+      tool?.setHandlesVisible(true);
     } else {
+      tool?.setClippingPlanesVisible(false);
+      tool?.setHandlesVisible(false);
       toolGroup.setToolDisabled('VolumeCropping');
     }
     getOrCreateRenderingEngine().renderViewport(viewportId);
