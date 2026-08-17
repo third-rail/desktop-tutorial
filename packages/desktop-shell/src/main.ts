@@ -3,6 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import { existsSync, createReadStream } from 'node:fs';
 import http from 'node:http';
+import { autoUpdater } from 'electron-updater';
 
 const isDev = !!process.env.DICOM_VIEWER_DEV_URL;
 const rendererDir = path.join(__dirname, '..', 'renderer');
@@ -129,6 +130,42 @@ async function readFilesRecursively(dir: string, baseDir = dir): Promise<{ name:
   return results;
 }
 
+/**
+ * Checks GitHub Releases (via the `publish` config in electron-builder.yml) for a newer version.
+ * Only runs against packaged installs — dev runs and unpackaged builds have no update feed and
+ * electron-updater errors out immediately if asked to check.
+ */
+function checkForUpdates() {
+  if (isDev || !app.isPackaged) return;
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on('update-downloaded', (info) => {
+    dialog
+      .showMessageBox({
+        type: 'info',
+        title: 'Update ready to install',
+        message: `DICOM Viewer ${info.version} has been downloaded.`,
+        detail: 'Restart now to install it, or it will install automatically the next time you quit.',
+        buttons: ['Restart now', 'Later'],
+        defaultId: 0,
+        cancelId: 1,
+      })
+      .then(({ response }) => {
+        if (response === 0) autoUpdater.quitAndInstall();
+      });
+  });
+
+  autoUpdater.on('error', (err) => {
+    console.error('Auto-update check failed:', err);
+  });
+
+  autoUpdater.checkForUpdates().catch((err) => {
+    console.error('Auto-update check failed:', err);
+  });
+}
+
 function registerIpcHandlers() {
   ipcMain.handle('dicomViewer:openFiles', async () => {
     const result = await dialog.showOpenDialog({
@@ -192,6 +229,7 @@ app.whenReady().then(async () => {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+  checkForUpdates();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

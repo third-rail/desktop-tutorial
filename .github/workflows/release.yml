@@ -15,8 +15,23 @@ permissions:
   contents: write
 
 jobs:
+  prepare:
+    name: Clean up any existing release for this tag
+    runs-on: ubuntu-latest
+    steps:
+      # Ensures re-running this workflow for a tag that already has a release (e.g. to pick up a
+      # renamed/rebuilt installer after a version bump) replaces it cleanly instead of leaving a
+      # stale, differently-named asset alongside the new one. Runs once, before any platform
+      # build, so the three platform jobs below don't race each other deleting/recreating it.
+      - name: Remove any existing release for this tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release delete "${{ inputs.tag_name || github.ref_name }}" --yes --cleanup-tag --repo ${{ github.repository }}
+        continue-on-error: true
+
   windows-installer:
     name: Build and publish Windows installer
+    needs: prepare
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,15 +43,6 @@ jobs:
 
       - run: npm ci
 
-      # Ensures re-running this workflow for a tag that already has a release (e.g. to pick up a
-      # renamed/rebuilt installer after a version bump) replaces it cleanly instead of leaving a
-      # stale, differently-named asset alongside the new one.
-      - name: Remove any existing release for this tag
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release delete "${{ inputs.tag_name || github.ref_name }}" --yes --cleanup-tag --repo ${{ github.repository }}
-        continue-on-error: true
-
       - name: Build Windows NSIS installer
         run: npm run build:win
 
@@ -46,3 +52,55 @@ jobs:
           tag_name: ${{ inputs.tag_name || github.ref_name }}
           files: packages/desktop-shell/release/*.exe
           generate_release_notes: true
+
+  # macOS and Linux run after Windows (rather than in parallel) because all three jobs publish to
+  # the same GitHub release via softprops/action-gh-release, and that action does a read-then-write
+  # of the release's asset list — running them concurrently risks one job's upload clobbering
+  # another's.
+  macos-installer:
+    name: Build and publish macOS installer
+    needs: windows-installer
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build macOS DMG (unsigned)
+        run: npm run build:mac
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Attach macOS installer to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name || github.ref_name }}
+          files: packages/desktop-shell/release/*.dmg
+
+  linux-installer:
+    name: Build and publish Linux installer
+    needs: macos-installer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build Linux AppImage
+        run: npm run build:linux
+
+      - name: Attach Linux installer to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name || github.ref_name }}
+          files: packages/desktop-shell/release/*.AppImage
