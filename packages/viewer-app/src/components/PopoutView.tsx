@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { requestSlotData, listenForStudiesClosed } from '../platform/popoutChannel';
 import { useViewerStore } from '../state/store';
 import type { ViewportKind } from '../state/store';
 import Viewport2D from './Viewport2D';
-import ViewportMPR from './ViewportMPR';
-import Viewport3D from './Viewport3D';
+
+// Same reasoning as ViewportSlot: keep Cornerstone's volume-rendering code out of the bundle a
+// pop-out window loads until it's actually asked to show an MPR or 3D pane.
+const ViewportMPR = lazy(() => import('./ViewportMPR'));
+const Viewport3D = lazy(() => import('./Viewport3D'));
 
 const AUTO_CLOSE_DELAY_MS = 2500;
 
@@ -56,10 +59,16 @@ export default function PopoutView({ slotId }: { slotId: string }) {
 
   return (
     <div className="popout-root">
-      {resolved.kind === 'volume3d' && <Viewport3D {...commonProps} />}
       {resolved.kind === 'stack' && <Viewport2D {...commonProps} />}
+      {resolved.kind === 'volume3d' && (
+        <Suspense fallback={<div className="popout-message">Loading 3D renderer…</div>}>
+          <Viewport3D {...commonProps} />
+        </Suspense>
+      )}
       {(resolved.kind === 'mpr-axial' || resolved.kind === 'mpr-sagittal' || resolved.kind === 'mpr-coronal') && (
-        <ViewportMPR {...commonProps} kind={resolved.kind} />
+        <Suspense fallback={<div className="popout-message">Loading MPR renderer…</div>}>
+          <ViewportMPR {...commonProps} kind={resolved.kind} />
+        </Suspense>
       )}
     </div>
   );
