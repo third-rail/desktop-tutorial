@@ -106,6 +106,12 @@ export default function Viewport3D({ slotId, seriesInstanceUID, active, onActiva
     // them back on ourselves right after activating.
     const tool = toolGroup.getToolInstance('VolumeCropping') as VolumeCroppingTool | undefined;
     if (slicerOn) {
+      // TrackballRotate is bound to the primary button by default and was activated first (at
+      // tool-group creation) -- Cornerstone3D's mouse dispatcher picks the *first*-registered
+      // active tool per binding as the one that handles the drag, so leaving TrackballRotate
+      // active here means every drag orbits the camera instead of ever reaching
+      // VolumeCropping's own handle-drag logic, no matter how precisely you grab a handle.
+      toolGroup.setToolPassive('TrackballRotate');
       toolGroup.setToolActive('VolumeCropping', {
         bindings: [{ mouseButton: cornerstoneTools.Enums.MouseBindings.Primary }],
       });
@@ -115,6 +121,9 @@ export default function Viewport3D({ slotId, seriesInstanceUID, active, onActiva
       tool?.setClippingPlanesVisible(false);
       tool?.setHandlesVisible(false);
       toolGroup.setToolDisabled('VolumeCropping');
+      toolGroup.setToolActive('TrackballRotate', {
+        bindings: [{ mouseButton: cornerstoneTools.Enums.MouseBindings.Primary }],
+      });
     }
     getOrCreateRenderingEngine().renderViewport(viewportId);
   }, [slicerOn, status, viewportId]);
