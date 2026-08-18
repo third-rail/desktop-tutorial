@@ -8,6 +8,46 @@ import { autoUpdater } from 'electron-updater';
 const isDev = !!process.env.DICOM_VIEWER_DEV_URL;
 const rendererDir = path.join(__dirname, '..', 'renderer');
 
+interface RecentEntry {
+  path: string;
+  kind: 'file' | 'folder';
+  label: string;
+  openedAt: number;
+}
+
+const MAX_RECENTS = 8;
+
+function recentsFilePath(): string {
+  return path.join(app.getPath('userData'), 'recent-files.json');
+}
+
+async function loadRecents(): Promise<RecentEntry[]> {
+  try {
+    const raw = await fs.readFile(recentsFilePath(), 'utf-8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveRecents(entries: RecentEntry[]) {
+  await fs.writeFile(recentsFilePath(), JSON.stringify(entries), 'utf-8');
+}
+
+/** Records a freshly opened file/folder at the top of the recents list (most-recent-first, deduped, capped). */
+async function addRecent(entryPath: string, kind: RecentEntry['kind']) {
+  const entries = await loadRecents();
+  const withoutDupe = entries.filter((e) => e.path !== entryPath);
+  withoutDupe.unshift({ path: entryPath, kind, label: path.basename(entryPath), openedAt: Date.now() });
+  await saveRecents(withoutDupe.slice(0, MAX_RECENTS));
+}
+
+async function removeRecent(entryPath: string) {
+  const entries = await loadRecents();
+  await saveRecents(entries.filter((e) => e.path !== entryPath));
+}
+
 // The renderer must NOT be loaded via a raw file:// URL (or a custom protocol scheme — tried and
 // it doesn't work either): Web Workers, which Cornerstone3D's DICOM decoders depend on, silently
 // fail to load their script for both file:// and custom-scheme origins in this Electron version,
@@ -89,7 +129,45 @@ function createWindow(query?: string): BrowserWindow {
   return win;
 }
 
-function buildMenu() {
+/** Re-reads a previously opened file or folder from disk and hands its bytes to the renderer. */
+async function openRecentEntry(entry: RecentEntry) {
+  try {
+    const files =
+      entry.kind === 'folder' ? await readFilesRecursively(entry.path) : [
+        { name: path.basename(entry.path), data: new Uint8Array(await fs.readFile(entry.path)) },
+      ];
+    mainWindow?.webContents.send('app:open-files', files);
+    await addRecent(entry.path, entry.kind);
+  } catch {
+    dialog.showErrorBox(
+      'Could not open recent item',
+      `"${entry.label}" could not be found or read. It may have been moved, renamed, or deleted.`,
+    );
+    await removeRecent(entry.path);
+  }
+  await buildMenu();
+}
+
+async function buildMenu() {
+  const recents = await loadRecents();
+  const recentSubmenu: Electron.MenuItemConstructorOptions[] =
+    recents.length === 0
+      ? [{ label: 'No Recent Files', enabled: false }]
+      : [
+          ...recents.map((entry) => ({
+            label: entry.kind === 'folder' ? `${entry.label}/` : entry.label,
+            click: () => openRecentEntry(entry),
+          })),
+          { type: 'separator' as const },
+          {
+            label: 'Clear Recent Files',
+            click: async () => {
+              await saveRecents([]);
+              await buildMenu();
+            },
+          },
+        ];
+
   const template: Electron.MenuItemConstructorOptions[] = [
     {
       label: 'File',
@@ -104,6 +182,7 @@ function buildMenu() {
           accelerator: 'CmdOrCtrl+Shift+O',
           click: () => mainWindow?.webContents.send('menu:open-folder'),
         },
+        { label: 'Open Recent', submenu: recentSubmenu },
         { type: 'separator' },
         {
           label: 'Close Study',
@@ -187,6 +266,13 @@ function registerIpcHandlers() {
       const data = await fs.readFile(filePath);
       files.push({ name: path.basename(filePath), data: new Uint8Array(data) });
     }
+    // Only a single-file pick (typically a .zip case export, or one loose .dcm) maps cleanly onto
+    // a single "reopen this" recent entry -- an arbitrary multi-file selection has no one path to
+    // remember it by.
+    if (result.filePaths.length === 1) {
+      await addRecent(result.filePaths[0], 'file');
+      await buildMenu();
+    }
     return files;
   });
 
@@ -196,6 +282,8 @@ function registerIpcHandlers() {
     }
     const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
     if (result.canceled) return [];
+    await addRecent(result.filePaths[0], 'folder');
+    await buildMenu();
     return readFilesRecursively(result.filePaths[0]);
   });
 
@@ -230,7 +318,7 @@ app.whenReady().then(async () => {
   }
 
   registerIpcHandlers();
-  buildMenu();
+  await buildMenu();
   mainWindow = createWindow();
   mainWindow.on('closed', () => {
     mainWindow = null;

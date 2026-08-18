@@ -45,6 +45,7 @@ export default function App() {
     bridge.onMenuOpenFolder(() => openAndLoad('folder'));
     bridge.onMenuCloseStudy(() => confirmAndCloseStudies());
     bridge.onOpenPath((file) => loadRawFiles([file]));
+    bridge.onOpenFiles((files) => loadRawFiles(files));
   }, [popoutSlotId]);
 
   if (popoutSlotId) {

@@ -9,4 +9,6 @@ contextBridge.exposeInMainWorld('dicomViewer', {
   onMenuCloseStudy: (callback: () => void) => ipcRenderer.on('menu:close-study', callback),
   onOpenPath: (callback: (file: { name: string; data: Uint8Array }) => void) =>
     ipcRenderer.on('app:open-path', (_event, file) => callback(file)),
+  onOpenFiles: (callback: (files: { name: string; data: Uint8Array }[]) => void) =>
+    ipcRenderer.on('app:open-files', (_event, files) => callback(files)),
 });
