@@ -52,12 +52,16 @@ export function createMprToolGroup() {
   return toolGroup;
 }
 
-/** Tool group for the 3D volume-render viewport: orbit camera + volume clipping (the slicer). */
+/** Tool group for the 3D volume-render viewport: orbit camera + zoom + volume clipping (the slicer). */
 export function createVolume3dToolGroup() {
   const toolGroup = getOrCreateToolGroup(VOLUME3D_TOOL_GROUP_ID);
   addToolOnce(toolGroup, 'TrackballRotate');
+  addToolOnce(toolGroup, 'Zoom');
   toolGroup.setToolActive('TrackballRotate', {
     bindings: [{ mouseButton: MouseBindings.Primary }],
+  });
+  toolGroup.setToolActive('Zoom', {
+    bindings: [{ mouseButton: MouseBindings.Secondary }, { mouseButton: MouseBindings.Wheel }],
   });
   return toolGroup;
 }
@@ -90,17 +94,21 @@ export function setPrimaryTool(toolGroupId: string, toolName: PrimaryToolName) {
   for (const name of ANNOTATION_TOOL_NAMES) {
     if (!toolGroup.hasTool(name)) continue;
     if (name === toolName) continue;
-    // Leave Pan/Zoom/WindowLevel/StackScroll bound to their fixed secondary buttons; only
-    // demote other annotation/primary-bindable tools that were previously primary.
-    if (name === 'Pan' || name === 'Zoom' || name === 'WindowLevel') continue;
+    // Pan and Zoom keep working on their fixed secondary/auxiliary buttons no matter which tool
+    // is primary -- setToolPassive() only strips their *primary*-button binding (Cornerstone3D's
+    // default "passive" behavior removes just the primary binding, and leaves a tool Active on
+    // whatever bindings remain), so excluding them here is just avoiding a no-op call, not
+    // actually required for correctness.
+    //
+    // WindowLevel must NOT be excluded, though: unlike Pan/Zoom it has no binding of its own
+    // beyond primary, so if it's left active here (as it used to be) it stays permanently bound
+    // to the primary button -- and because it's the first tool ever activated (at tool-group
+    // creation), Cornerstone3D's mouse dispatcher picks it as *the* tool for every primary-button
+    // click/drag no matter what's selected. That silently broke every other primary tool
+    // (Length, Angle, ROI tools, Zoom via primary, ...) -- clicks and drags always ended up
+    // adjusting window/level instead of doing what the selected tool does.
+    if (name === 'Pan' || name === 'Zoom') continue;
     toolGroup.setToolPassive(name);
-  }
-
-  if (toolName === 'Pan' || toolName === 'Zoom' || toolName === 'WindowLevel') {
-    // These three stay on their dedicated mouse buttons at all times; selecting them from the
-    // toolbar simply also promotes them to the primary button for single-button/touch users.
-    toolGroup.setToolActive(toolName, { bindings: [{ mouseButton: MouseBindings.Primary }] });
-    return;
   }
 
   toolGroup.setToolActive(toolName, { bindings: [{ mouseButton: MouseBindings.Primary }] });
