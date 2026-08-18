@@ -15,13 +15,30 @@
   --danger: #ff6b6b;
   --success: #00d68f;
 
-  /* Per-function toolbar tints. Kept low-chroma so the chrome never competes with the image. */
+  /* Per-function toolbar tints. Backgrounds stay low-chroma so the chrome never competes with the
+     image; each group's top stripe carries the actual color-coding so groups read as distinct at
+     a glance without tinting the whole bar. */
   --group-file-bg: #141a21;
   --group-file-border: #253039;
+  --group-file-stripe: #5b9dff;
   --group-tools-bg: #132025;
   --group-tools-border: #24404180;
+  --group-tools-stripe: #4db6ac;
+  --group-window-bg: #171426;
+  --group-window-border: #352a52;
+  --group-window-stripe: #b28dfc;
+  --group-layout-bg: #171426;
+  --group-layout-border: #352a52;
+  --group-layout-stripe: #b28dfc;
+  --group-export-bg: #201a12;
+  --group-export-border: #4a3a1e;
+  --group-export-stripe: #f0b93d;
+  --group-panels-bg: #0e1f1e;
+  --group-panels-border: #1f3f3c;
+  --group-panels-stripe: #4ad9c9;
   --group-muted-bg: #11151b;
   --group-muted-border: #212932;
+  --group-muted-stripe: #3a4552;
 
   color-scheme: dark;
 }
@@ -141,12 +158,14 @@ input {
   flex-wrap: wrap;
 }
 
-/* Each group is a joined segment: related actions read as one control, and a thin gap plus the
-   group's own tint separates it from the next. */
+/* Each group is a joined segment: related actions read as one control, a thin gap separates it
+   from the next, and a colored top stripe (rather than tinting the whole group) is what actually
+   codes each group's function -- easy to tell apart at a glance without competing with the image. */
 .toolbar-group {
   display: flex;
   align-items: stretch;
   border: 1px solid var(--group-muted-border);
+  border-top: 2px solid var(--group-muted-stripe);
   border-radius: 6px;
   background: var(--group-muted-bg);
   overflow: hidden;
@@ -155,16 +174,39 @@ input {
 .toolbar-group-file {
   background: var(--group-file-bg);
   border-color: var(--group-file-border);
+  border-top-color: var(--group-file-stripe);
 }
 
 .toolbar-group-tools {
   background: var(--group-tools-bg);
   border-color: var(--group-tools-border);
+  border-top-color: var(--group-tools-stripe);
+}
+
+.toolbar-group-window {
+  background: var(--group-window-bg);
+  border-color: var(--group-window-border);
+  border-top-color: var(--group-window-stripe);
 }
 
 .toolbar-group-layout {
+  background: var(--group-layout-bg);
+  border-color: var(--group-layout-border);
+  border-top-color: var(--group-layout-stripe);
   align-items: center;
   padding: 0 10px;
+}
+
+.toolbar-group-export {
+  background: var(--group-export-bg);
+  border-color: var(--group-export-border);
+  border-top-color: var(--group-export-stripe);
+}
+
+.toolbar-group-panels {
+  background: var(--group-panels-bg);
+  border-color: var(--group-panels-border);
+  border-top-color: var(--group-panels-stripe);
 }
 
 .toolbar-group-end {
