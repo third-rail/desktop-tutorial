@@ -8,6 +8,13 @@
   </head>
   <body>
     <div id="root"></div>
+    <!--
+      GitHub Pages can't send custom COOP/COEP response headers, but the DICOM codec workers
+      (openjpeg/openjph/charls) need cross-origin isolation for SharedArrayBuffer. This
+      service worker injects those headers client-side on hosts that don't set them; it's a
+      no-op wherever the page is already cross-origin isolated (dev/preview server, Electron).
+    -->
+    <script src="/coi-serviceworker.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
