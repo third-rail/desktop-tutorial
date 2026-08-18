@@ -8,6 +8,7 @@ export interface ElectronBridge {
   onMenuOpenFolder(callback: () => void): void;
   onMenuCloseStudy(callback: () => void): void;
   onOpenPath(callback: (file: { name: string; data: Uint8Array }) => void): void;
+  onOpenFiles(callback: (files: { name: string; data: Uint8Array }[]) => void): void;
 }
 
 declare global {
